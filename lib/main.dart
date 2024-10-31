@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 // Task model
 class Task {
@@ -62,6 +63,7 @@ class TodoListScreen extends StatelessWidget {
       appBar: AppBar(title: Text('To-Do List')),
       body: Column(
         children: [
+          CalendarWidget(),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
@@ -111,6 +113,22 @@ class TodoListScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Takvim bileşeni
+class CalendarWidget extends StatelessWidget { // <--- **StatelessWidget olarak tanımladık**
+  @override
+  Widget build(BuildContext context) {
+    return TableCalendar( // <--- Takvim bileşenini buraya ekliyoruz
+      firstDay: DateTime.utc(2020, 1, 1),
+      lastDay: DateTime.utc(2025, 12, 31),
+      focusedDay: DateTime.now(),
+      onDaySelected: (selectedDay, focusedDay) {
+        // <--- Gün seçme işlemini burada işleyebilirsiniz
+        print('Seçilen Gün: $selectedDay'); // Örnek: Seçilen günü yazdır
+      },
     );
   }
 }
