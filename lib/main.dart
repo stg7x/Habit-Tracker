@@ -2,43 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-// Task model
-class Task {
+enum Recurrence { daily, weekly, monthly }
+
+class Habit {
   String name;
   bool isDone;
-  DateTime date; // Yeni tarih özelliği eklendi
+  DateTime date;
+  Color color;
+  Recurrence recurrence;
 
-  Task({required this.name, this.isDone = false, required this.date});
+  Habit({
+    required this.name,
+    this.isDone = false,
+    required this.date,
+    required this.color,
+    required this.recurrence,
+  });
 }
 
-// Task Provider
-class TaskProvider with ChangeNotifier {
-  List<Task> _tasks = [];
+class HabitProvider with ChangeNotifier {
+  final List<Habit> _habits = [];
 
-  List<Task> get tasks => _tasks;
+  List<Habit> get habits => _habits;
 
-  void addTask(String taskName, DateTime date) {
-    _tasks.add(Task(name: taskName, date: date)); // Task'e tarih bilgisi ile ekleme yapıldı
+  void addHabit(String habitName, DateTime date, Color color, Recurrence recurrence) {
+    _habits.add(Habit(name: habitName, date: date, color: color, recurrence: recurrence));
     notifyListeners();
   }
 
-  void toggleTaskStatus(int index) {
-    _tasks[index].isDone = !_tasks[index].isDone;
+  void toggleHabitStatus(int index) {
+    _habits[index].isDone = !_habits[index].isDone;
     notifyListeners();
   }
 
-  void removeTask(int index) {
-    _tasks.removeAt(index);
-    notifyListeners();
+  List<Habit> getHabitsForDate(DateTime date) {
+    return _habits.where((habit) {
+      if (habit.date.isSameDate(date)) return true;
+      if (habit.recurrence == Recurrence.daily) return true;
+      if (habit.recurrence == Recurrence.weekly && date.weekday == habit.date.weekday) return true;
+      if (habit.recurrence == Recurrence.monthly && date.day == habit.date.day) return true;
+      return false;
+    }).toList();
   }
 
-  // Seçilen tarihe göre görevleri döndüren fonksiyon
-  List<Task> getTasksForDate(DateTime date) {
-    return _tasks.where((task) => task.date.isSameDate(date)).toList();
+  int getCompletedCount() {
+    return _habits.where((habit) => habit.isDone).length;
+  }
+
+  void removeHabit(int index) {
+    _habits.removeAt(index);
+    notifyListeners();
   }
 }
 
-// Tarih kontrolü için yardımcı fonksiyon
 extension DateTimeComparison on DateTime {
   bool isSameDate(DateTime other) {
     return this.year == other.year && this.month == other.month && this.day == other.day;
@@ -48,7 +64,7 @@ extension DateTimeComparison on DateTime {
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (context) => TaskProvider(),
+      create: (context) => HabitProvider(),
       child: MyApp(),
     ),
   );
@@ -58,36 +74,87 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'To-Do List',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: TodoListScreen(),
+      title: 'Habit Tracker',
+      theme: ThemeData(primarySwatch: Colors.teal),
+      home: MainScreen(),
     );
   }
 }
 
-// To-Do List ekranı artık StatefulWidget olarak tanımlandı
-class TodoListScreen extends StatefulWidget {
+class MainScreen extends StatefulWidget {
   @override
-  _TodoListScreenState createState() => _TodoListScreenState();
+  _MainScreenState createState() => _MainScreenState();
 }
 
-// TodoListScreen'in State'i
-class _TodoListScreenState extends State<TodoListScreen> {
-  final TextEditingController _controller = TextEditingController();
-  DateTime _selectedDate = DateTime.now(); // Seçilen tarihi tutmak için bir değişken
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+
+  // Sayfalarımızı tanımlıyoruz
+  final List<Widget> _pages = [
+    HabitListScreen(),
+    StatisticsScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final taskProvider = Provider.of<TaskProvider>(context);
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Ana Sayfa',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'İstatistikler',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+}
+
+class HabitListScreen extends StatefulWidget {
+  @override
+  _HabitListScreenState createState() => _HabitListScreenState();
+}
+
+class _HabitListScreenState extends State<HabitListScreen> {
+  final TextEditingController _controller = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+  Color _selectedColor = Colors.blue;
+  Recurrence _selectedRecurrence = Recurrence.daily;
+
+  @override
+  Widget build(BuildContext context) {
+    final habitProvider = Provider.of<HabitProvider>(context);
+    final habitsForSelectedDate = habitProvider.getHabitsForDate(_selectedDate);
 
     return Scaffold(
-      appBar: AppBar(title: Text('To-Do List')),
+      appBar: AppBar(
+        title: Text('Habit Tracker'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(child: Text('Completed: ${habitProvider.getCompletedCount()}')),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           CalendarWidget(
-            onDaySelected: (selectedDay, focusedDay) { // Takvimden tarih seçme
+            onDaySelected: (selectedDay, focusedDay) {
               setState(() {
-                _selectedDate = selectedDay; // Seçilen tarih güncelleniyor
+                _selectedDate = selectedDay;
               });
             },
           ),
@@ -96,12 +163,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
             child: TextField(
               controller: _controller,
               decoration: InputDecoration(
-                labelText: 'New Task',
+                labelText: 'New Habit',
                 suffixIcon: IconButton(
                   icon: Icon(Icons.add),
                   onPressed: () {
                     if (_controller.text.isNotEmpty) {
-                      taskProvider.addTask(_controller.text, _selectedDate); // Seçilen tarih ile görev ekleme
+                      habitProvider.addHabit(_controller.text, _selectedDate, _selectedColor, _selectedRecurrence);
                       _controller.clear();
                     }
                   },
@@ -109,33 +176,52 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ),
             ),
           ),
+          DropdownButton<Recurrence>(
+            value: _selectedRecurrence,
+            items: Recurrence.values.map((Recurrence recurrence) {
+              return DropdownMenuItem<Recurrence>(
+                value: recurrence,
+                child: Text(recurrence.toString().split('.').last),
+              );
+            }).toList(),
+            onChanged: (Recurrence? newValue) {
+              setState(() {
+                _selectedRecurrence = newValue!;
+              });
+            },
+          ),
           Expanded(
-            child: ListView.builder(
-              itemCount: taskProvider.getTasksForDate(_selectedDate).length, // Seçilen tarihe göre görev listeleme
-              itemBuilder: (context, index) {
-                final task = taskProvider.getTasksForDate(_selectedDate)[index]; // Seçilen tarihe göre görevleri al
-                return ListTile(
-                  title: Text(
-                    task.name,
-                    style: TextStyle(
-                      decoration: task.isDone ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                  leading: Checkbox(
-                    value: task.isDone,
-                    onChanged: (value) {
-                      taskProvider.toggleTaskStatus(index);
+            child: habitsForSelectedDate.isEmpty
+                ? Center(child: Text('No habits for this date.'))
+                : ListView.builder(
+                    itemCount: habitsForSelectedDate.length,
+                    itemBuilder: (context, index) {
+                      final habit = habitsForSelectedDate[index];
+                      return ListTile(
+                        title: Text(
+                          habit.name,
+                          style: TextStyle(
+                            decoration: habit.isDone ? TextDecoration.lineThrough : null,
+                            color: habit.color,
+                          ),
+                        ),
+                        leading: Checkbox(
+                          value: habit.isDone,
+                          onChanged: (value) {
+                            habitProvider.toggleHabitStatus(habitProvider.habits.indexOf(habit));
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit status updated')));
+                          },
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () {
+                            habitProvider.removeHabit(habitProvider.habits.indexOf(habit));
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit deleted')));
+                          },
+                        ),
+                      );
                     },
                   ),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () {
-                      taskProvider.removeTask(index);
-                    },
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -143,41 +229,61 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 }
 
-// Takvim bileşeni
+class StatisticsScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final habitProvider = Provider.of<HabitProvider>(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('İstatistikler'),
+      ),
+      body: Center(
+        child: Text(
+          'Tamamlanan Görev Sayısı: ${habitProvider.getCompletedCount()}',
+          style: TextStyle(fontSize: 20),
+        ),
+      ),
+    );
+  }
+}
 
-class CalendarWidget extends StatelessWidget {
-  final Function(DateTime, DateTime) onDaySelected; // onDaySelected parametresi
+class CalendarWidget extends StatefulWidget {
+  final Function(DateTime, DateTime) onDaySelected;
 
-  CalendarWidget({required this.onDaySelected});
+  CalendarWidget({Key? key, required this.onDaySelected}) : super(key: key);
+
+  @override
+  _CalendarWidgetState createState() => _CalendarWidgetState();
+}
+
+class _CalendarWidgetState extends State<CalendarWidget> {
+  DateTime _focusedDay = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
-    // _TodoListScreenState'e erişim
-    final _TodoListScreenState state = context.findAncestorStateOfType<_TodoListScreenState>()!;
+    final state = context.findAncestorStateOfType<_HabitListScreenState>()!;
 
     return TableCalendar(
-      focusedDay: DateTime.now(),
+      focusedDay: _focusedDay,
       firstDay: DateTime(2000),
       lastDay: DateTime(2100),
       onDaySelected: (selectedDay, focusedDay) {
-        print('Seçilen Gün: $selectedDay'); // Seçilen gün konsola yazdırılır
-        onDaySelected(selectedDay, focusedDay);
+        setState(() {
+          state._selectedDate = selectedDay;
+          _focusedDay = focusedDay;
+        });
+        widget.onDaySelected(selectedDay, focusedDay);
       },
       calendarStyle: CalendarStyle(
         selectedDecoration: BoxDecoration(
-          color: Colors.blue, // Seçilen gün için arka plan rengi
-          shape: BoxShape.rectangle, // Şekil
+          color: Colors.teal,
+          shape: BoxShape.circle,
         ),
-        selectedTextStyle: TextStyle(
-          color: Colors.white, // Seçilen gün üzerindeki metin rengi
-        ),
-        defaultDecoration: BoxDecoration(
-          shape: BoxShape.rectangle,
-        ),
+        selectedTextStyle: TextStyle(color: Colors.white),
+        defaultDecoration: BoxDecoration(shape: BoxShape.rectangle),
       ),
-      // Seçilen günü kontrol etmek için
       selectedDayPredicate: (day) {
-        return day.isSameDate(state._selectedDate); // _selectedDate ile karşılaştırma
+        return day.isSameDate(state._selectedDate);
       },
     );
   }
