@@ -57,7 +57,7 @@ class HabitProvider with ChangeNotifier {
 
 extension DateTimeComparison on DateTime {
   bool isSameDate(DateTime other) {
-    return this.year == other.year && this.month == other.month && this.day == other.day;
+    return year == other.year && month == other.month && day == other.day;
   }
 }
 
@@ -288,3 +288,4 @@ class _CalendarWidgetState extends State<CalendarWidget> {
     );
   }
 }
+
