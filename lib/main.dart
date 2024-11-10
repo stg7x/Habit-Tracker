@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:habit_tracker/widgets/calendar.dart';
 
 enum Recurrence { daily, weekly, monthly }
 
@@ -246,46 +246,3 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
 }
-
-class CalendarWidget extends StatefulWidget {
-  final Function(DateTime, DateTime) onDaySelected;
-
-  CalendarWidget({Key? key, required this.onDaySelected}) : super(key: key);
-
-  @override
-  _CalendarWidgetState createState() => _CalendarWidgetState();
-}
-
-class _CalendarWidgetState extends State<CalendarWidget> {
-  DateTime _focusedDay = DateTime.now();
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.findAncestorStateOfType<_HabitListScreenState>()!;
-
-    return TableCalendar(
-      focusedDay: _focusedDay,
-      firstDay: DateTime(2000),
-      lastDay: DateTime(2100),
-      onDaySelected: (selectedDay, focusedDay) {
-        setState(() {
-          state._selectedDate = selectedDay;
-          _focusedDay = focusedDay;
-        });
-        widget.onDaySelected(selectedDay, focusedDay);
-      },
-      calendarStyle: CalendarStyle(
-        selectedDecoration: BoxDecoration(
-          color: Colors.teal,
-          shape: BoxShape.circle,
-        ),
-        selectedTextStyle: TextStyle(color: Colors.white),
-        defaultDecoration: BoxDecoration(shape: BoxShape.rectangle),
-      ),
-      selectedDayPredicate: (day) {
-        return day.isSameDate(state._selectedDate);
-      },
-    );
-  }
-}
-
