@@ -1,66 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:habit_tracker/widgets/calendar.dart';
-
-enum Recurrence { daily, weekly, monthly }
-
-class Habit {
-  String name;
-  bool isDone;
-  DateTime date;
-  Color color;
-  Recurrence recurrence;
-
-  Habit({
-    required this.name,
-    this.isDone = false,
-    required this.date,
-    required this.color,
-    required this.recurrence,
-  });
-}
-
-class HabitProvider with ChangeNotifier {
-  final List<Habit> _habits = [];
-
-  List<Habit> get habits => _habits;
-
-  void addHabit(String habitName, DateTime date, Color color, Recurrence recurrence) {
-    _habits.add(Habit(name: habitName, date: date, color: color, recurrence: recurrence));
-    notifyListeners();
-  }
-
-  void toggleHabitStatus(int index) {
-    _habits[index].isDone = !_habits[index].isDone;
-    notifyListeners();
-  }
-
-  List<Habit> getHabitsForDate(DateTime date) {
-    return _habits.where((habit) {
-      if (habit.date.isSameDate(date)) return true;
-      if (habit.recurrence == Recurrence.daily) return true;
-      if (habit.recurrence == Recurrence.weekly && date.weekday == habit.date.weekday) return true;
-      if (habit.recurrence == Recurrence.monthly && date.day == habit.date.day) return true;
-      return false;
-    }).toList();
-  }
-
-  int getCompletedCount() {
-    return _habits.where((habit) => habit.isDone).length;
-  }
-
-  void removeHabit(int index) {
-    _habits.removeAt(index);
-    notifyListeners();
-  }
-}
-
-extension DateTimeComparison on DateTime {
-  bool isSameDate(DateTime other) {
-    return year == other.year && month == other.month && day == other.day;
-  }
-}
-
+import 'models/habit.dart';
+import 'providers/habit_provider.dart';
 void main() {
   runApp(
     ChangeNotifierProvider(

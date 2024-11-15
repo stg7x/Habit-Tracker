@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/main.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:habit_tracker/models/habit.dart';
 
 class CalendarWidget extends StatefulWidget {
   final Function(DateTime, DateTime) onDaySelected;
