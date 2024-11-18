@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:habit_tracker/widgets/calendar.dart';
-import 'models/habit.dart';
 import 'providers/habit_provider.dart';
 import 'screens/main_screen.dart';
-import 'screens/statistics_screen .dart';
 
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (context) => HabitProvider(),
+      create: (context) {
+        final provider = HabitProvider();
+        provider.loadHabits(); // Alışkanlıkları yükle
+        return provider;
+      },
       child: MyApp(),
     ),
   );

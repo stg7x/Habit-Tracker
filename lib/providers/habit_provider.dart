@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/models/habit.dart';
+import 'dart:convert'; // JSON encode/decode için
+import 'package:shared_preferences/shared_preferences.dart'; // SharedPreferences için
 
 class HabitProvider with ChangeNotifier {
   final List<Habit> _habits = [];
@@ -9,12 +11,14 @@ class HabitProvider with ChangeNotifier {
   // Yeni alışkanlık ekleme
   void addHabit(String habitName, DateTime date, Color color, Recurrence recurrence) {
     _habits.add(Habit(name: habitName, date: date, color: color, recurrence: recurrence));
+    saveHabits(); // Alışkanlıkları kaydet (SharedPreferences ile)
     notifyListeners();
   }
 
   // Alışkanlık durumunu değiştirme
   void toggleHabitStatus(int index) {
     _habits[index].isDone = !_habits[index].isDone;
+    saveHabits(); // Değişiklik sonrası kaydet
     notifyListeners();
   }
 
@@ -37,6 +41,28 @@ class HabitProvider with ChangeNotifier {
   // Alışkanlık silme
   void removeHabit(int index) {
     _habits.removeAt(index);
+    saveHabits(); // Silme sonrası kaydet
     notifyListeners();
+  }
+
+  // *** SharedPreferences işlemleri ***
+
+  // Alışkanlıkları SharedPreferences'e kaydetme
+  Future<void> saveHabits() async {
+    final prefs = await SharedPreferences.getInstance(); // SharedPreferences başlat
+    final String encodedHabits = json.encode(_habits.map((habit) => habit.toJson()).toList());
+    await prefs.setString('habits', encodedHabits); // JSON string olarak kaydet
+  }
+
+  // Alışkanlıkları SharedPreferences'den yükleme
+  Future<void> loadHabits() async {
+    final prefs = await SharedPreferences.getInstance(); // SharedPreferences başlat
+    final String? savedHabits = prefs.getString('habits'); // Alışkanlıkları getir
+    if (savedHabits != null) {
+      final List decodedHabits = json.decode(savedHabits); // JSON'dan listeye dönüştür
+      _habits.clear();
+      _habits.addAll(decodedHabits.map((habit) => Habit.fromJson(habit)).toList());
+      notifyListeners(); // Ekranı güncelle
+    }
   }
 }

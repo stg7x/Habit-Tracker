@@ -17,6 +17,28 @@ class Habit {
     required this.color,
     required this.recurrence,
   });
+
+  // *** JSON'a dönüştürmek için toJson metodu ***
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'isDone': isDone,
+      'date': date.toIso8601String(),
+      'color': color.value, // Renk değeri int olarak kaydediliyor
+      'recurrence': recurrence.toString(), // Enum string olarak kaydediliyor
+    };
+  }
+
+  // *** JSON'dan nesneye dönüştürmek için fromJson metodu ***
+  factory Habit.fromJson(Map<String, dynamic> json) {
+    return Habit(
+      name: json['name'],
+      isDone: json['isDone'],
+      date: DateTime.parse(json['date']),
+      color: Color(json['color']), // Renk int değerinden Color nesnesine dönüştürülüyor
+      recurrence: Recurrence.values.firstWhere((e) => e.toString() == json['recurrence']),
+    );
+  }
 }
 
 // DateTime karşılaştırması için extension
