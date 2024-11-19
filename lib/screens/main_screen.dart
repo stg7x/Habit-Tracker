@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:habit_tracker/widgets/calendar.dart';
 import 'package:habit_tracker/providers/habit_provider.dart';
 import 'package:habit_tracker/models/habit.dart';
-import 'statistics_screen .dart';
+import 'statistics_screen.dart';
 
 class MainScreen extends StatefulWidget {
   @override
