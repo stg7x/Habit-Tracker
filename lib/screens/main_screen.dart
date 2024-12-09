@@ -24,6 +24,13 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = index;
     });
   }
+  
+  @override
+  void initState() {
+    super.initState();
+    // Verileri yükle
+    Provider.of<HabitProvider>(context, listen: false).loadHabits();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +76,7 @@ class _HabitListScreenState extends State<HabitListScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Center(child: Text('Completed: ${habitProvider.getCompletedCount()}')),
+            child: Center(child: Text('Completed: ${habitProvider.getCompletedCount(_selectedDate)}')),
           ),
         ],
       ),
@@ -80,6 +87,8 @@ class _HabitListScreenState extends State<HabitListScreen> {
               setState(() {
                 _selectedDate = selectedDay;
               });
+             habitProvider.loadHabits();  // Alışkanlıkları yeniden yükle
+
             },
           ),
           Padding(
@@ -114,39 +123,46 @@ class _HabitListScreenState extends State<HabitListScreen> {
               });
             },
           ),
-          Expanded(
-            child: habitsForSelectedDate.isEmpty
-                ? Center(child: Text('No habits for this date.'))
-                : ListView.builder(
-                    itemCount: habitsForSelectedDate.length,
-                    itemBuilder: (context, index) {
-                      final habit = habitsForSelectedDate[index];
-                      return ListTile(
-                        title: Text(
-                          habit.name,
-                          style: TextStyle(
-                            decoration: habit.isDone ? TextDecoration.lineThrough : null,
-                            color: habit.color,
-                          ),
-                        ),
-                        leading: Checkbox(
-                          value: habit.isDone,
-                          onChanged: (value) {
-                            habitProvider.toggleHabitStatus(habitProvider.habits.indexOf(habit));
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit status updated')));
-                          },
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () {
-                            habitProvider.removeHabit(habitProvider.habits.indexOf(habit));
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit deleted')));
-                          },
-                        ),
-                      );
-                    },
-                  ),
-          ),
+Expanded(
+  child: habitsForSelectedDate.isEmpty
+      ? Center(child: Text('No habits for this date.'))
+      : ListView.builder(
+          itemCount: habitsForSelectedDate.length,
+          itemBuilder: (context, index) {
+            final habit = habitsForSelectedDate[index];
+            final dateKey = _selectedDate.toIso8601String();
+
+            return ListTile(
+              title: Text(
+                habit.name,
+                style: TextStyle(
+                  decoration: habit.completionStatus[dateKey] ?? false 
+                      ? TextDecoration.lineThrough 
+                      : null,  // completionStatus üzerinden kontrol ediliyor
+                  color: habit.color,
+                ),
+              ),
+              leading: Checkbox(
+                value: habit.completionStatus[dateKey] ?? false, // completionStatus kullanılarak kontrol ediliyor
+                onChanged: (value) {
+                  habitProvider.toggleHabitStatus(habitProvider.habits.indexOf(habit), _selectedDate);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit status updated')));
+                },
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () {
+                  habitProvider.removeHabit(habitProvider.habits.indexOf(habit));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit deleted')));
+                },
+              ),
+            );
+          },
+        ),
+),
+
+
+
         ],
       ),
     );

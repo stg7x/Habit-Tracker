@@ -11,15 +11,24 @@ class HabitProvider with ChangeNotifier {
   // Yeni alışkanlık ekleme
   void addHabit(String habitName, DateTime date, Color color, Recurrence recurrence) {
     _habits.add(Habit(name: habitName, date: date, color: color, recurrence: recurrence));
-    saveHabits(); // Alışkanlıkları kaydet (SharedPreferences ile)
+    saveHabits(); // Alışkanlıkları kaydet
     notifyListeners();
   }
 
-  // Alışkanlık durumunu değiştirme
-  void toggleHabitStatus(int index) {
-    _habits[index].isDone = !_habits[index].isDone;
-    saveHabits(); // Değişiklik sonrası kaydet
-    notifyListeners();
+  // Alışkanlık durumunu tersine çevirme
+  void toggleHabitStatus(int index, DateTime date) {
+    final habit = _habits[index];
+    final dateKey = date.toIso8601String(); // Tarihi string olarak al
+
+    // Eğer tarih daha önce tamamlandıysa, durumunu tersine çevir
+    if (habit.completionStatus.containsKey(dateKey)) {
+      habit.completionStatus[dateKey] = !(habit.completionStatus[dateKey] ?? false);
+    } else {
+      habit.completionStatus[dateKey] = true; // Henüz tamamlanmadıysa, tamamlandı olarak işaretle
+    }
+
+    saveHabits(); // Değişiklikleri kaydet
+    notifyListeners(); // UI'yi güncelle
   }
 
   // Tarihe göre alışkanlıkları getirme
@@ -34,8 +43,9 @@ class HabitProvider with ChangeNotifier {
   }
 
   // Tamamlanan alışkanlık sayısını al
-  int getCompletedCount() {
-    return _habits.where((habit) => habit.isDone).length;
+  int getCompletedCount(DateTime date) {
+    final dateKey = date.toIso8601String(); // Tarihi string olarak al
+    return _habits.where((habit) => habit.completionStatus[dateKey] == true).length;
   }
 
   // Alışkanlık silme
@@ -45,7 +55,18 @@ class HabitProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // *** SharedPreferences işlemleri ***
+  // *** SharedPreferences işlemleri *** 
+
+  // Alışkanlıkları tamamla ve kaydet
+  void markAsCompleted(Habit habit, String date) {
+    habit.completionStatus.update(
+      date,
+      (_) => true,  // Eğer tarih varsa tamamlandı yap
+      ifAbsent: () => true,  // Eğer tarih yoksa, onu ekleyip tamamlandı yap
+    );
+    saveHabits();  // Güncellenmiş durumu kaydet
+    notifyListeners();  // UI'yi güncelle
+  }
 
   // Alışkanlıkları SharedPreferences'e kaydetme
   Future<void> saveHabits() async {
