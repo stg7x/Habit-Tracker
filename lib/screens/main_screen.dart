@@ -13,7 +13,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // Sayfalarımızı tanımlıyoruz
   final List<Widget> _pages = [
     HabitListScreen(),
     StatisticsScreen(),
@@ -24,11 +23,10 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = index;
     });
   }
-  
+
   @override
   void initState() {
     super.initState();
-    // Verileri yükle
     Provider.of<HabitProvider>(context, listen: false).loadHabits();
   }
 
@@ -40,26 +38,35 @@ class _MainScreenState extends State<MainScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Ana Sayfa',
+            label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
-            label: 'İstatistikler',
+            label: 'Statistics',
           ),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => AddHabitDialog(),
+          );
+        },
+        child: Icon(Icons.add),
+      ),
     );
   }
 }
 
-class HabitListScreen extends StatefulWidget {
+class AddHabitDialog extends StatefulWidget {
   @override
-  _HabitListScreenState createState() => _HabitListScreenState();
+  _AddHabitDialogState createState() => _AddHabitDialogState();
 }
 
-class _HabitListScreenState extends State<HabitListScreen> {
+class _AddHabitDialogState extends State<AddHabitDialog> {
   final TextEditingController _controller = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   Color _selectedColor = Colors.blue;
@@ -67,46 +74,35 @@ class _HabitListScreenState extends State<HabitListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final habitProvider = Provider.of<HabitProvider>(context);
-    final habitsForSelectedDate = habitProvider.getHabitsForDate(_selectedDate);
+    final habitProvider = Provider.of<HabitProvider>(context, listen: false);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Habit Tracker'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Center(child: Text('Completed: ${habitProvider.getCompletedCount(_selectedDate)}')),
-          ),
-        ],
-      ),
-      body: Column(
+    return AlertDialog(
+      title: Text('Add New Habit'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CalendarWidget(
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDate = selectedDay;
-              });
-             habitProvider.loadHabits();  // Alışkanlıkları yeniden yükle
-
-            },
+          TextField(
+            controller: _controller,
+            decoration: InputDecoration(labelText: 'Habit Name'),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                labelText: 'New Habit',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: () {
-                    if (_controller.text.isNotEmpty) {
-                      habitProvider.addHabit(_controller.text, _selectedDate, _selectedColor, _selectedRecurrence);
-                      _controller.clear();
-                    }
-                  },
-                ),
-              ),
+          SizedBox(height: 10),
+          ListTile(
+            title: Text('Select Date'),
+            trailing: IconButton(
+              icon: Icon(Icons.calendar_today),
+              onPressed: () async {
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2101),
+                );
+                if (pickedDate != null && pickedDate != _selectedDate) {
+                  setState(() {
+                    _selectedDate = pickedDate;
+                  });
+                }
+              },
             ),
           ),
           DropdownButton<Recurrence>(
@@ -123,46 +119,104 @@ class _HabitListScreenState extends State<HabitListScreen> {
               });
             },
           ),
-Expanded(
-  child: habitsForSelectedDate.isEmpty
-      ? Center(child: Text('No habits for this date.'))
-      : ListView.builder(
-          itemCount: habitsForSelectedDate.length,
-          itemBuilder: (context, index) {
-            final habit = habitsForSelectedDate[index];
-            final dateKey = _selectedDate.toIso8601String();
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              if (_controller.text.isNotEmpty) {
+                habitProvider.addHabit(
+                  _controller.text,
+                  _selectedDate,
+                  _selectedColor,
+                  _selectedRecurrence,
+                );
+                Navigator.of(context).pop();
+              }
+            },
+            child: Text('Add Habit'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-            return ListTile(
-              title: Text(
-                habit.name,
-                style: TextStyle(
-                  decoration: habit.completionStatus[dateKey] ?? false 
-                      ? TextDecoration.lineThrough 
-                      : null,  // completionStatus üzerinden kontrol ediliyor
-                  color: habit.color,
-                ),
-              ),
-              leading: Checkbox(
-                value: habit.completionStatus[dateKey] ?? false, // completionStatus kullanılarak kontrol ediliyor
-                onChanged: (value) {
-                  habitProvider.toggleHabitStatus(habitProvider.habits.indexOf(habit), _selectedDate);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit status updated')));
-                },
-              ),
-              trailing: IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  habitProvider.removeHabit(habitProvider.habits.indexOf(habit));
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Habit deleted')));
-                },
-              ),
-            );
-          },
-        ),
-),
+class HabitListScreen extends StatefulWidget {
+  @override
+  _HabitListScreenState createState() => _HabitListScreenState();
+}
 
+class _HabitListScreenState extends State<HabitListScreen> {
+  DateTime _selectedDate = DateTime.now();
 
+  @override
+  Widget build(BuildContext context) {
+    final habitProvider = Provider.of<HabitProvider>(context);
+    final habitsForSelectedDate = habitProvider.getHabitsForDate(_selectedDate);
 
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Habit Tracker'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(
+                child: Text(
+                    'Completed: ${habitProvider.getCompletedCount(_selectedDate)}')),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          CalendarWidget(
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDate = selectedDay;
+              });
+              habitProvider.loadHabits();
+            },
+          ),
+          Expanded(
+            child: habitsForSelectedDate.isEmpty
+                ? Center(child: Text('No habits for this date.'))
+                : ListView.builder(
+                    itemCount: habitsForSelectedDate.length,
+                    itemBuilder: (context, index) {
+                      final habit = habitsForSelectedDate[index];
+                      final dateKey = _selectedDate.toIso8601String();
+
+                      return ListTile(
+                        title: Text(
+                          habit.name,
+                          style: TextStyle(
+                            decoration: habit.completionStatus[dateKey] ?? false
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: habit.color,
+                          ),
+                        ),
+                        leading: Checkbox(
+                          value: habit.completionStatus[dateKey] ?? false,
+                          onChanged: (value) {
+                            habitProvider.toggleHabitStatus(
+                                habitProvider.habits.indexOf(habit),
+                                _selectedDate);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text('Habit status updated')));
+                          },
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () {
+                            habitProvider.removeHabit(
+                                habitProvider.habits.indexOf(habit));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Habit deleted')));
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ],
       ),
     );

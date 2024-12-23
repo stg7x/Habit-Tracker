@@ -9,8 +9,10 @@ class HabitProvider with ChangeNotifier {
   List<Habit> get habits => _habits;
 
   // Yeni alışkanlık ekleme
-  void addHabit(String habitName, DateTime date, Color color, Recurrence recurrence) {
-    _habits.add(Habit(name: habitName, date: date, color: color, recurrence: recurrence));
+  void addHabit(
+      String habitName, DateTime date, Color color, Recurrence recurrence) {
+    _habits.add(Habit(
+        name: habitName, date: date, color: color, recurrence: recurrence));
     saveHabits(); // Alışkanlıkları kaydet
     notifyListeners();
   }
@@ -22,9 +24,11 @@ class HabitProvider with ChangeNotifier {
 
     // Eğer tarih daha önce tamamlandıysa, durumunu tersine çevir
     if (habit.completionStatus.containsKey(dateKey)) {
-      habit.completionStatus[dateKey] = !(habit.completionStatus[dateKey] ?? false);
+      habit.completionStatus[dateKey] =
+          !(habit.completionStatus[dateKey] ?? false);
     } else {
-      habit.completionStatus[dateKey] = true; // Henüz tamamlanmadıysa, tamamlandı olarak işaretle
+      habit.completionStatus[dateKey] =
+          true; // Henüz tamamlanmadıysa, tamamlandı olarak işaretle
     }
 
     saveHabits(); // Değişiklikleri kaydet
@@ -36,8 +40,11 @@ class HabitProvider with ChangeNotifier {
     return _habits.where((habit) {
       if (habit.date.isSameDate(date)) return true;
       if (habit.recurrence == Recurrence.daily) return true;
-      if (habit.recurrence == Recurrence.weekly && date.weekday == habit.date.weekday) return true;
-      if (habit.recurrence == Recurrence.monthly && date.day == habit.date.day) return true;
+      if (habit.recurrence == Recurrence.weekly &&
+          date.weekday == habit.date.weekday) return true;
+      if (habit.recurrence == Recurrence.monthly && date.day == habit.date.day) {
+        return true;
+      }
       return false;
     }).toList();
   }
@@ -45,7 +52,9 @@ class HabitProvider with ChangeNotifier {
   // Tamamlanan alışkanlık sayısını al
   int getCompletedCount(DateTime date) {
     final dateKey = date.toIso8601String(); // Tarihi string olarak al
-    return _habits.where((habit) => habit.completionStatus[dateKey] == true).length;
+    return _habits
+        .where((habit) => habit.completionStatus[dateKey] == true)
+        .length;
   }
 
   // Alışkanlık silme
@@ -55,34 +64,40 @@ class HabitProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // *** SharedPreferences işlemleri *** 
+  // *** SharedPreferences işlemleri ***
 
   // Alışkanlıkları tamamla ve kaydet
   void markAsCompleted(Habit habit, String date) {
     habit.completionStatus.update(
       date,
-      (_) => true,  // Eğer tarih varsa tamamlandı yap
-      ifAbsent: () => true,  // Eğer tarih yoksa, onu ekleyip tamamlandı yap
+      (_) => true, // Eğer tarih varsa tamamlandı yap
+      ifAbsent: () => true, // Eğer tarih yoksa, onu ekleyip tamamlandı yap
     );
-    saveHabits();  // Güncellenmiş durumu kaydet
-    notifyListeners();  // UI'yi güncelle
+    saveHabits(); // Güncellenmiş durumu kaydet
+    notifyListeners(); // UI'yi güncelle
   }
 
   // Alışkanlıkları SharedPreferences'e kaydetme
   Future<void> saveHabits() async {
-    final prefs = await SharedPreferences.getInstance(); // SharedPreferences başlat
-    final String encodedHabits = json.encode(_habits.map((habit) => habit.toJson()).toList());
+    final prefs =
+        await SharedPreferences.getInstance(); // SharedPreferences başlat
+    final String encodedHabits =
+        json.encode(_habits.map((habit) => habit.toJson()).toList());
     await prefs.setString('habits', encodedHabits); // JSON string olarak kaydet
   }
 
   // Alışkanlıkları SharedPreferences'den yükleme
   Future<void> loadHabits() async {
-    final prefs = await SharedPreferences.getInstance(); // SharedPreferences başlat
-    final String? savedHabits = prefs.getString('habits'); // Alışkanlıkları getir
+    final prefs =
+        await SharedPreferences.getInstance(); // SharedPreferences başlat
+    final String? savedHabits =
+        prefs.getString('habits'); // Alışkanlıkları getir
     if (savedHabits != null) {
-      final List decodedHabits = json.decode(savedHabits); // JSON'dan listeye dönüştür
+      final List decodedHabits =
+          json.decode(savedHabits); // JSON'dan listeye dönüştür
       _habits.clear();
-      _habits.addAll(decodedHabits.map((habit) => Habit.fromJson(habit)).toList());
+      _habits
+          .addAll(decodedHabits.map((habit) => Habit.fromJson(habit)).toList());
       notifyListeners(); // Ekranı güncelle
     }
   }
