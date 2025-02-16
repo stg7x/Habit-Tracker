@@ -13,7 +13,7 @@ dependencies:
   provider: ^6.0.0  
   table_calendar: ^3.0.0
   shared_preferences: ^2.0.15
-  charts_flutter: ^0.11.0
+  pie_chart: ^5.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:habit_tracker/providers/habit_provider.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:pie_chart/pie_chart.dart';
 
 class StatisticsScreen extends StatelessWidget {
   @override
@@ -11,21 +11,11 @@ class StatisticsScreen extends StatelessWidget {
     final completedToday = habitProvider.getCompletedCount(today);
     final totalHabits = habitProvider.habits.length;
 
-    List<charts.Series<ChartData, String>> _createSampleData() {
-      final data = [
-        ChartData('Completed', completedToday),
-        ChartData('Remaining', totalHabits - completedToday),
-      ];
-
-      return [
-        charts.Series<ChartData, String>(
-          id: 'Habits',
-          domainFn: (ChartData data, _) => data.label,
-          measureFn: (ChartData data, _) => data.value,
-          data: data,
-          labelAccessorFn: (ChartData row, _) => '${row.label}: ${row.value}',
-        )
-      ];
+    Map<String, double> _createSampleData() {
+      return {
+        'Completed': completedToday.toDouble(),
+        'Remaining': (totalHabits - completedToday).toDouble(),
+      };
     }
 
     return Scaffold(
@@ -58,16 +48,23 @@ class StatisticsScreen extends StatelessWidget {
             ),
             SizedBox(height: 20),
             Expanded(
-              child: charts.PieChart(
-                _createSampleData(),
-                animate: true,
-                defaultRenderer: charts.ArcRendererConfig(
-                  arcWidth: 60,
-                  arcRendererDecorators: [
-                    charts.ArcLabelDecorator(
-                      labelPosition: charts.ArcLabelPosition.inside,
-                    )
-                  ],
+              child: PieChart(
+                dataMap: _createSampleData(),
+                chartType: ChartType.ring,
+                chartRadius: MediaQuery.of(context).size.width / 2,
+                colorList: [Colors.green, Colors.red],
+                chartValuesOptions: ChartValuesOptions(
+                  showChartValuesInPercentage: true,
+                  showChartValuesOutside: true,
+                  decimalPlaces: 1,
+                ),
+                legendOptions: LegendOptions(
+                  showLegendsInRow: false,
+                  legendPosition: LegendPosition.right,
+                  showLegends: true,
+                  legendTextStyle: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
